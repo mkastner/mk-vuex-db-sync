@@ -1,0 +1,16 @@
+<div class="main">
+  <h3>Persons</h3>
+  <ul v-if="persons">
+    <li v-for="(person, index) in persons">
+      [{{changeType(person)}}] {{person.created_at}} 
+      <input type="text" :value="person.name"
+        name="name" 
+        @change="update(person, $event)" /> 
+      <input type="button" 
+        @click.prevent="remove(person)" 
+        value="DEL" />
+    </li>
+    <input type="test" v-model="newName" />
+    <input type="button" @click.prevent="create" value="Add Person"/>
+  </ul>
+</div>

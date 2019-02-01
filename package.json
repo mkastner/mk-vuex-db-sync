@@ -1,0 +1,42 @@
+{
+  "name": "mk-vue-dexie-sync-plugin",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "license": "MIT",
+  "scripts": {
+    "dev": "NODE_ENV=development node test/server.js",
+    "build": "NODE_ENV=production webpack --config build/webpack.dist.config.js --progress --hide-modules"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.2.2",
+    "autoprefixer": "^9.4.7",
+    "axios": "^0.18.0",
+    "babel-loader": "^8.0.5",
+    "body-parser": "^1.18.3",
+    "bookshelf": "^0.14.2",
+    "bookshelf-scopes": "^1.5.1",
+    "chokidar": "^2.0.4",
+    "css-loader": "^2.1.0",
+    "dexie": "^2.0.4",
+    "dexie-observable": "^1.0.0-beta.5",
+    "express": "^4.16.4",
+    "knex": "^0.14.6",
+    "mysql": "^2.16.0",
+    "node-sass": "^4.11.0",
+    "resolve-url-loader": "^3.0.0",
+    "sass-loader": "^7.1.0",
+    "style-loader": "^0.23.1",
+    "vue": "^2.5.22",
+    "vue-loader": "^15.6.2",
+    "vue-style-loader": "^4.1.2",
+    "vue-template-compiler": "^2.5.22",
+    "vuex": "^3.1.0",
+    "webpack": "^4.29.0",
+    "webpack-cli": "^3.2.1",
+    "webpack-dev-middleware": "^3.5.1",
+    "webpack-hot-middleware": "^2.24.3",
+    "webpack-merge": "^4.2.1",
+    "worker-loader": "^2.0.0"
+  },
+  "dependencies": {}
+}

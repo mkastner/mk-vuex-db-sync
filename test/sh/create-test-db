@@ -1,0 +1,23 @@
+#!/bin/bash
+
+if [ -z $DB_USER ]; then
+echo "DB_USER not set as env var"
+exit 1
+fi
+if [ -z $DB_USER_PASSWORD ]; then
+echo "DB_USER_PASSWORD not set as env var"
+exit 1
+fi
+if [ -z $DB_ROOT_PASSWORD ]; then
+echo "DB_ROOT_PASSWORD not set as env var"
+exit 1
+fi
+
+DB_NAME="vuex_dexie_sync_test"
+
+mysql --user="root" --password="${DB_ROOT_PASSWORD}" \
+-e "DROP DATABASE ${DB_NAME}"
+mysql --user="root" --password="${DB_ROOT_PASSWORD}" \
+-e "CREATE DATABASE ${DB_NAME} CHARACTER SET utf8 COLLATE utf8_unicode_ci"
+mysql --user="root" --password="dagnyt931" \
+-e "grant all on ${DB_NAME}.* to '${DB_USER}'@'localhost'"
