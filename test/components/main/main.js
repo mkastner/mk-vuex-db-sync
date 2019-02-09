@@ -7,6 +7,7 @@ export default {
     };
   },
   mounted() {
+    console.log('^^^^^^^^^^^^^^ mounted fetching ^^^^^^^^^^^^^^^^');
     this.$store.dispatch('person/fetch');
   },
   methods: {

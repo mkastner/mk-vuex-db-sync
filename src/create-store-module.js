@@ -5,6 +5,7 @@ import DateTimeConstants from './date-time-constants';
 import moment from 'moment';
 
 export default function StoreModule(dbTable) {
+  
   return {
       
     namespaced: true,
@@ -20,14 +21,14 @@ export default function StoreModule(dbTable) {
     }),
     getters: {
       // (state, allGetters, rootState) => rootState.route.params
-      current(state, allGetters, rootState) {
-        return state.list[this.index]; 
+      current(state) {
+        return state.list[state.index]; 
       },
       // returns all items which are not marked as deleted 
-      undeleted(state, allGetters) {
-        return state.list.filter(item => item.change_type !== ChangeTypeConstants.ChangeTypeDeleted);
+      undeleted(state) {
+        return state.list.filter(item => 
+          item.change_type !== ChangeTypeConstants.ChangeTypeDeleted);
       }
-      
     },
     actions: {
       fetchOne({state, commit}, index) {
@@ -51,22 +52,35 @@ export default function StoreModule(dbTable) {
       },
       search({commit, dispatch}, search) {
         commit('SET_SEARCH', search); 
-        dispatch('fetch', search);
+        dispatch('fetch');
       }, 
-      fetch({commit, state}) {
+      fetchPage({dispatch}) {
+        // convenience method to fetch paginated
+        let withPagination = true;
+        dispatch('fetch', withPagination); 
+      },
+      fetch({commit, state}, withPagination) {
         // TODO implement search with state.search 
-        dbTable.where('change_type')
-          .notEqual(ChangeTypeConstants.ChangeTypeDeleted)
-          .offset((state.pagination.page - 1) * state.pagination.pageSize)
-          .limit(state.pagination.pageSize).toArray()
-          .then((records) => {
-            commit('CLEAR'); 
-            for (let i = 0, l = records.length; i < l; i++) {
-              commit('ADD', records[i]); 
-            }
-          }).catch((err) => {
-            console.error(err); 
-          });
+       
+       
+        console.log('ChangeTypeConstants.ChangeTypeDeleted', ChangeTypeConstants.ChangeTypeDeleted);
+
+        const query = dbTable.filter(item => 
+          item.change_type != ChangeTypeConstants.ChangeTypeDeleted);
+        if (withPagination) {  
+          query.offset((state.pagination.page - 1) * state.pagination.pageSize)
+            .limit(state.pagination.pageSize);
+        } 
+        query.toArray().then((records) => {
+          console.log('%%%%%%%% fetch %%%%%%%');
+          console.log('fetched records', records);
+          commit('CLEAR'); 
+          for (let i = 0, l = records.length; i < l; i++) {
+            commit('ADD', records[i]); 
+          }
+        }).catch((err) => {
+          console.error(err); 
+        });
       },
       create({commit}, initialFields) {
         const  newItem = {
@@ -121,6 +135,9 @@ export default function StoreModule(dbTable) {
       setIndex({commit}, index) {
         commit('SET_INDEX', index);  
       },
+      refresh({dispatch}) {
+        dispatch('fetch');
+      }
     },
     mutations: {
       SET_INDEX(state, index) {
@@ -154,9 +171,11 @@ export default function StoreModule(dbTable) {
       },
       DELETE(state, id) {
         const index = state.list.findIndex(item => item.id === id);
+       
+        console.log('DELETE index', index);
+        
         state.list.splice(index, 1);
       }
     }
   };
 }
-

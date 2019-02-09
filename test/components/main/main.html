@@ -1,8 +1,9 @@
 <div class="main">
   <h3>Persons</h3>
+  {{persons}}
   <ul v-if="persons">
     <li v-for="(person, index) in persons">
-      [{{changeType(person)}}] {{person.created_at}} 
+      {{index}}[{{changeType(person)}}] {{person.created_at}} 
       <input type="text" :value="person.name"
         name="name" 
         @change="update(person, $event)" /> 

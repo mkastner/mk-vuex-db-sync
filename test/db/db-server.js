@@ -1,5 +1,5 @@
 const knexConfig = require('./knexfile');
-console.log('db-server.js knexConfig', knexConfig);
+// console.log('db-server.js knexConfig', knexConfig);
 const knex = require('knex')(knexConfig);
 const bookshelf = require('bookshelf')(knex);
 

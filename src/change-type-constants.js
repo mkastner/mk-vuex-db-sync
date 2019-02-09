@@ -1,9 +1,9 @@
-const ChangeTypeDeleted = 1;
-const ChangeTypeCreated = 2;
-const ChangeTypeUpdated = 3;
+const ChangeTypeCreated = 1;
+const ChangeTypeUpdated = 2;
+const ChangeTypeDeleted = 3;
 
 module.exports = {
-  ChangeTypeDeleted,
   ChangeTypeCreated,
-  ChangeTypeUpdated
+  ChangeTypeUpdated,
+  ChangeTypeDeleted
 };
