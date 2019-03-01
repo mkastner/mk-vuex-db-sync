@@ -9,6 +9,7 @@ const compiler = webpack(webpackConfig);
 const express = require('express');
 const app = express();
 const PersonModel = require('./db/person-model');
+const CommentModel = require('./db/comment-model');
 const SyncTask = require('../lib/sync-task');
 const server = require('http').createServer();
 
@@ -22,13 +23,23 @@ const wss = new WebSocket.Server({server: server}, (result, code, name, headers)
 });
 
 //console.log('wss', wss);
+console.log('PersonModel************', new PersonModel().tableName);
+
 
 
 wss.on('connection', function connection(ws) {
   //console.log('on connection', ws);
   //
   //
-  SyncTask.init(wss, ws, PersonModel); 
+  
+  const models = { 
+    person: PersonModel, 
+    comment: CommentModel 
+  };
+  
+  SyncTask.init(wss, ws, models); 
+  
+  // A task handler could also handle communication 
   const taskHandlers = {
     'persons/sync': SyncTask
   };
@@ -36,19 +47,25 @@ wss.on('connection', function connection(ws) {
 
     //console.log('stringifiedJSON', stringifiedJSON);
 
-    let payload = JSON.parse(stringifiedJSON); 
-    console.log('payload', payload);
- 
-    const task = payload.task;
-    const data = payload.data;
+    let data = JSON.parse(stringifiedJSON); 
+    console.log('data', data);
+
+    // TODO get key data here
+
+    let taskKey = `${data.name}/${data.task}`; 
+
 
     // console.log('data', data); 
     // Broadcast to everyone else.
     // console.log('server.js ws.on message task        :', task);
     //console.log('server.js ws.on message taskHandlers:', taskHandlers);
-    const taskHandler = taskHandlers[task];
+    const taskHandler = taskHandlers[taskKey];
+    if (!taskHandler) {
+      throw new Error(`taskKey "${taskKey}" does not match any
+      registered task keys: ${Object.keys(taskHandlers)}`); 
+    }
     //console.log('server.js ws.on message taskHandler :', taskHandler);
-    taskHandler.execute({task, data});
+    taskHandler.execute(data);
 
     //syncTask(ws, wss, {task, data}, personModel).execute();
 

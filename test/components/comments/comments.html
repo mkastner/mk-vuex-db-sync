@@ -1,0 +1,18 @@
+<div class="comments" v-if="currentPerson">
+  comments for {{currentPerson.name}}<br />
+  <button type="submit" @click="create">Add Comment</button>
+  <input type="text" v-model="newComment.title" />
+  <textarea v-model="newComment.body"></textarea>
+  <ul>
+    <li v-for="(comment, index) in comments">
+      personId: {{currentPerson.id}}<br/>
+      commentId: {{comment.id}}<br/>
+      updated_at: {{comment.updated_at}}<br/>
+      <input type="text" :value="comment.title" name="title" @change="update(comment, $event)" />
+      <textarea @change="update(comment, $event)" name="body">{{comment.body}}</textarea>
+      <input type="button" 
+        @click.prevent="remove(comment)" 
+        value="DEL" />
+    </li>
+  </ul>
+</div>

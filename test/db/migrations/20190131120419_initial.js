@@ -1,18 +1,27 @@
-exports.up = function(knex, Promise) {
+// second arg: Promise
+exports.up = function(knex) {
 
-  function createPersons() {
-    return knex.schema.createTable('persons', (t) => {
-      t.bigIncrements('id').primary().unsigned();
-      t.datetime('created_at');
-      t.datetime('updated_at');
-      t.string('name');
-    });
-  }
+  const createPersons = () => knex.schema.createTable('persons', (t) => {
+    t.bigIncrements('id').primary().unsigned();
+    t.datetime('created_at');
+    t.datetime('updated_at');
+    t.string('name');
+  });
+    
+  const createComments = () => knex.schema.createTable('comments', (t) => {
+    t.bigIncrements('id').primary().unsigned();
+    t.integer('person_id'); 
+    t.datetime('created_at');
+    t.datetime('updated_at');
+    t.string('title');
+    t.string('body');
+  });
 
-  return createPersons();  
+  return createPersons().then(createComments);  
   
 };
 
-exports.down = (knex, Promise) => {
-  return knex.schema.dropTable('persons'); 
+// second arg: Promise
+exports.down = (knex) => {
+  return Promise.all([knex.schema.dropTable('persons'), knex.schema.dropTable('jobs')]); 
 };

@@ -1,1 +1,9 @@
-.main {}
+.main {
+
+}
+
+.list {
+  &__selected {
+    background-color: #ddd; 
+  }
+}

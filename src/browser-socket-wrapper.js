@@ -5,27 +5,27 @@ export default function BrowserSocketWrapper(url) {
   console.log('bufferedAmount', webSocket.bufferedAmount); 
    
   return {
-    send(task, data) {
-      console.log('task', task);
+    send(data) {
       console.log('data', data);
 
       //if (!task) throw new Error('task must be passed as argument');
       //if (!data) throw new Error('data must be passed as argument');
-      webSocket.send(JSON.stringify({task, data})); 
+      webSocket.send(JSON.stringify(data)); 
     },
-    receive(task, cb) {
-      if (!task) {
-        throw new Error('task must be provided');
+    receive(taskName, cb) {
+      if (!taskName) {
+        throw new Error('task name must be provided');
       }
       if (!cb) {
         throw new Error('callback must be provided');
       }
-      webSocket.addEventListener('message', (rawMessage) => {
-        console.log('socket wrapper rawMessage', rawMessage); 
-        const jsonMessage = JSON.parse(rawMessage.data);
-        console.log('socket wrapper jsonMessage', jsonMessage); 
-        if (jsonMessage.task === task) {
-          cb(jsonMessage.data);
+      webSocket.addEventListener('message', (message) => {
+        console.log('socket wrapper message     ', message); 
+        console.log('socket wrapper message.data', message.data); 
+        const data = JSON.parse(message.data);
+        console.log('socket wrapper jsonData', data); 
+        if (data.task === taskName) {
+          cb(data);
         } 
       }); 
     

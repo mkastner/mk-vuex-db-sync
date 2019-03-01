@@ -1,9 +1,18 @@
 <div class="main">
   <h3>Persons</h3>
-  {{persons}}
-  <ul v-if="persons">
-    <li v-for="(person, index) in persons">
-      {{index}}[{{changeType(person)}}] {{person.created_at}} 
+  <select v-model="syncType">
+    <option v-for="type in SyncTypes"
+      :selected="type.key === syncType"
+      :value="type.key">
+      {{type.label}} 
+    </option>
+  </select> 
+  <ul v-if="persons" class="list">
+    <li v-for="(person, index) in persons"
+      :class="{'list__selected': currentIndex === index}">
+      id: {{person.id}} 
+      <a href="#" @click.prevent="select(index)">select</a>
+      {{index}}[{{changeType(person)}}] {{person.updated_at}} 
       <input type="text" :value="person.name"
         name="name" 
         @change="update(person, $event)" /> 
@@ -11,7 +20,8 @@
         @click.prevent="remove(person)" 
         value="DEL" />
     </li>
-    <input type="test" v-model="newName" />
+    <input type="test" v-model="newName" v-on:keyup.enter="create" />
     <input type="button" @click.prevent="create" value="Add Person"/>
   </ul>
+  <comments></comments>
 </div>
