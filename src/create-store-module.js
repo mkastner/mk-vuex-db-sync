@@ -16,7 +16,7 @@ export default function createStoreModule(dbTable, accessor) {
       scope: {}, 
       orders: [],//{ by: '', reverse: false}, 
       index: -1,
-      search: '',
+      search: {}, // ege title: 'Bauen', subtitle: 'haus'
       list: [], // all tables – paginated
       pagination: {
         page: 1,
@@ -35,6 +35,12 @@ export default function createStoreModule(dbTable, accessor) {
       }
     },
     actions: {
+      resetState({commit}) {
+        commit('RESET_STATE');
+      },
+      removeLocalData({commit}) {
+        commit('REMOVE_LOCAL_DATA'); 
+      }, 
       setSyncType({commit}, syncType) {
         commit('SET_SYNC_TYPE', syncType); 
       },
@@ -57,9 +63,20 @@ export default function createStoreModule(dbTable, accessor) {
                
         console.log('state.orders     ', state.orders);
      
-        
-
-        coll.toArray(arr => {
+        coll.filter((item) => {
+          console.log('this.search', state.search); 
+          if (!state.search) { return true; }
+          if (!Object.keys(state.search).length) { return true; }
+          for (let key in state.search) {
+            console.log('this.search key', key); 
+            if (item[key]) {
+              console.log('this.item[key]', item); 
+              if (item[key].toLowerCase().indexOf(state.search[key].toLowerCase()) >= 0) {
+                return true; 
+              } 
+            } 
+          }
+        }).toArray(arr => {
           // TODO: this sould be defined as a real function 
           arr.sort((itemA, itemB) => {
 
@@ -112,6 +129,7 @@ export default function createStoreModule(dbTable, accessor) {
 
       },
       create({commit}, initialFields) {
+        
         const  newItem = {
           id: uuid(),
           created_at: moment().format(DateTimeConstants.MySqlFormat), 
@@ -124,7 +142,9 @@ export default function createStoreModule(dbTable, accessor) {
             newItem[key] = initialFields[key]; 
           } 
         }
+     
         commit('CREATE', newItem);  
+      
       },
       deleteScoped({dispatch}, scope) {
 
@@ -132,9 +152,14 @@ export default function createStoreModule(dbTable, accessor) {
 
         return dbTable.where(scope).toArray()
           .then((items) => {
-            return items.map(item =>
-              dispatch('delete', { id: item.id, change_type: item.change_type})
-            );
+            try { 
+              let result = items.map(item =>
+                dispatch('delete', { id: item.id, change_type: item.change_type})
+              );
+              return Promise.resolve(result);
+            } catch (err) {
+              return Promise.reject(err); 
+            }
           });
       },
       delete({commit}, {id, change_type}) {
@@ -142,6 +167,10 @@ export default function createStoreModule(dbTable, accessor) {
         // if the record is a new one
         // then it can get immediately deleted
         // because it's not stored on the server yet
+
+        console.log('id               ', id); 
+        console.log('changeType       ', change_type); 
+        console.log('ChangeTypeCreated', ChangeTypeConstants.ChangeTypeCreated);
         if (change_type === ChangeTypeConstants.ChangeTypeCreated) {
           commit('DELETE', id);
         }
@@ -220,30 +249,28 @@ export default function createStoreModule(dbTable, accessor) {
         state.list.push(newItem);
         state.index = state.list.length -1; 
       },
+      REMOVE_LOCAL_DATA(state) {
+        state.list.splice(0); 
+      },
       PATCH(state, {id, fields}) {
         console.log('PATCH id   ', id); 
         const index = state.list.findIndex(item => item.id === id);
         console.log('PATCH index', index); 
         for (let key in fields) {
           state.list[index][key] = fields[key]; 
-        } 
+        }
       },
       // it's the same as patch but
       // I need this to have a separate name
       // firing at the plugin
       MARK_DELETED(state, {id, fields}) {
-        console.log('id', id); 
         const index = state.list.findIndex(item => item.id === id);
-        console.log('index', index); 
         for (let key in fields) {
           state.list[index][key] = fields[key]; 
         } 
       },
       DELETE(state, id) {
         const index = state.list.findIndex(item => item.id === id);
-       
-        console.log('DELETE index', index);
-        
         state.list.splice(index, 1);
       },
       SET_SYNC_TYPE(state, syncType) {
@@ -267,6 +294,12 @@ export default function createStoreModule(dbTable, accessor) {
         state.orders.push({by,reverse});
       },
       CLEAR_ORDER(state) {
+        state.orders.splice(0); 
+      },
+      RESET_STATE(state) {
+        // Do NOT reset scope!!!
+        state.list.splice(0);
+        state.index = -1;
         state.orders.splice(0); 
       }
     }

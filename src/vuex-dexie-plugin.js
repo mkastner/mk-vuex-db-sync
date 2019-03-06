@@ -95,75 +95,85 @@ export default function VuexDexiePlugin({db, resourceName, modelName, routeName,
       const mutationTypeListeners = newPlugin.mutationListeners[mutation.type];
       
       if (mutationTypeListeners && mutationTypeListeners.length) {
+       
+        const mutationTypeListenerPromises = mutationTypeListeners.map( l => 
+          l({ mutation, dbTable, store, dependants: newPlugin.dependants})
+        );
+       
+        Promise.all(mutationTypeListenerPromises).catch((err) => console.error(err));
+        /*
         for (let i = 0, l = mutationTypeListeners.length; i < l; i++) {
           const typeListener = mutationTypeListeners[i];
           typeListener({mutation, dbTable, 
             store, dependants: newPlugin.dependants});
         }
+        */
       }
     }); 
   };
 
 
   newPlugin.addMutationListener('PATCH', ({mutation, dbTable}) => {
-    dbTable  
+    return dbTable  
       .where('id').equals(mutation.payload.id)
       .modify(mutation.payload.fields);
   });
   newPlugin.addMutationListener('CREATE', ({mutation, dbTable, store, dependants}) => {
-    dbTable.add(mutation.payload)
+    return dbTable.add(mutation.payload)
       .then((createdId) => {
-        try {
-          if (dependants && dependants.length) {
-            for (let i = 0, l = dependants.length; i < l; i++) {
-              const dependant = dependants[i];
-              if (dependant.initialFields) {
-                for (let j = 0, jl = dependant.initialFields.length; j < jl; j++) {
-                  const initialFields = dependant.initialFields[j];
-                  initialFields[dependant.depKey] = createdId;
-                  
-                  console.log('dependants initialFields', initialFields); 
-                  
-                  store.dispatch(`${dependant.modelName}/create`, initialFields);
-                } 
-              }
-            } 
-          }
-        } catch (err) {
-          console.error(err); 
+        if (dependants && dependants.length) {
+          for (let i = 0, l = dependants.length; i < l; i++) {
+            const dependant = dependants[i];
+            store.dispatch(`${dependant.modelName}/resetState`);
+            if (dependant.initialFields) {
+              for (let j = 0, jl = dependant.initialFields.length; j < jl; j++) {
+                const initialFields = dependant.initialFields[j];
+                initialFields[dependant.depKey] = createdId;
+                
+                console.log('dependants initialFields', initialFields); 
+                
+                store.dispatch(`${dependant.modelName}/create`, initialFields);
+              } 
+            }
+          } 
         }
-      })
-      .catch((err) => {
-        console.error(err); 
       });
-  }); 
+  });
   newPlugin.addMutationListener('DELETE', ({mutation, dbTable, dependants}) => {
+    
     const tableId = mutation.payload;
-    console.log('vuex plugin DELETE scope mutation type', mutation.type);
+    
+    console.log(`mutationListener ${mutation.type} tableId`, tableId);
+    
+    return dbTable
+      .delete(tableId).then((deleted) => {
+        console.log('vuex plugin DELETE deleted', deleted);
+        let deletePromises = dependants.map(dep => {
+          let scope = {};
+          scope[`${dep.depKey}`] = tableId;
+          console.log('vuex plugin DELETE scope', scope);
+          return newPlugin.store.dispatch(`${dep.modelName}/deleteScoped`, scope);
+        });
 
-    dbTable
-      .delete(tableId)
-      .catch((err) => console.error(err));
+        return Promise.all(deletePromises);
+      });
 
     /** need to go through store, because dependants
      *  need to fire events */
-    let deletePromises = dependants.map(dep => {
-      let scope = {};
-      scope[`${dep.depKey}`] = tableId;
-      console.log('vuex plugin DELETE scope', scope);
-      return newPlugin.store.dispatch(`${dep.modelName}/deleteScoped`, scope);
-    }); 
+  }); 
+  newPlugin.addMutationListener('REMOVE_LOCAL_DATA', ({dbTable, dependants}) => {
+    return dbTable
+      .clear()
+      .then(() => {
+        let removePromises = dependants.map(dep => {
+          return newPlugin.store.dispatch(`${dep.modelName}/removeLocalData`);
+        }); 
+        return Promise.all(removePromises);
+      });
 
-    Promise.all(deletePromises)
-      .then((res) => {
-        console.log('dependants deleted', res); 
-      })
-      .catch((err) => {
-        console.error(err); 
-      }).catch( err => { console.error(err); });
   }); 
   newPlugin.addMutationListener('MARK_DELETED', ({mutation}) => {
-    newPlugin.db[newPlugin.resourceName]
+    return newPlugin.db[newPlugin.resourceName]
       .where('id')
       .equals(mutation.payload.id)
       .modify(mutation.payload.fields); 
