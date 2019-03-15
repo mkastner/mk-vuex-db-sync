@@ -1,4 +1,4 @@
-let Const = {
+const Const = {
   Types: {
     None: -1,
     Once: 1,

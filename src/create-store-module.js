@@ -1,8 +1,9 @@
 import Vue from 'vue';
 import uuid from 'uuid';
 import SyncTypeConstants from './sync-type-constants';
-import ChangeTypeConstants from './change-type-constants';
+import ChangeTypeConstants from '../lib/change-type-constants';
 import DateTimeConstants from '../lib/date-time-constants';
+import SyncStatusConstants from './sync-status-constants';
 import moment from 'moment';
 
 export default function createStoreModule(dbTable, accessor) {
@@ -12,7 +13,10 @@ export default function createStoreModule(dbTable, accessor) {
     namespaced: true,
     
     state: () => ({
-      syncType: SyncTypeConstants.Types.None, 
+      sync: {
+        type: SyncTypeConstants.Types.None,
+        delay: 0 
+      },
       scope: {}, 
       orders: [],//{ by: '', reverse: false}, 
       index: -1,
@@ -20,8 +24,22 @@ export default function createStoreModule(dbTable, accessor) {
       list: [], // all tables – paginated
       pagination: {
         page: 1,
-        pageSize: 10
-      } // tables pagination 
+        pageSize: 10,
+        pages: 1,
+        total: 1
+      }, // tables pagination 
+      status: {
+        sync: {
+          status: SyncStatusConstants.Types.None,
+          at: '' // timestamp of last status 
+        },
+        db: {
+          total: 0, 
+          updated: [],
+          created: [],
+          deleted: [] 
+        }
+      } 
     }),
     getters: {
       // (state, allGetters, rootState) => rootState.route.params
@@ -33,6 +51,7 @@ export default function createStoreModule(dbTable, accessor) {
         return state.list.filter(item => 
           item.change_type !== ChangeTypeConstants.ChangeTypeDeleted);
       }
+
     },
     actions: {
       resetState({commit}) {
@@ -41,8 +60,8 @@ export default function createStoreModule(dbTable, accessor) {
       removeLocalData({commit}) {
         commit('REMOVE_LOCAL_DATA'); 
       }, 
-      setSyncType({commit}, syncType) {
-        commit('SET_SYNC_TYPE', syncType); 
+      setSync({commit}, {delay, type}) {
+        commit('SET_SYNC', {delay, type}); 
       },
       search({commit, dispatch}, search) {
         commit('SET_SEARCH', search); 
@@ -61,16 +80,13 @@ export default function createStoreModule(dbTable, accessor) {
           coll = dbTable;
         }
                
-        console.log('state.orders     ', state.orders);
+        //console.log('state.orders     ', state.orders);
      
         coll.filter((item) => {
-          console.log('this.search', state.search); 
           if (!state.search) { return true; }
           if (!Object.keys(state.search).length) { return true; }
           for (let key in state.search) {
-            console.log('this.search key', key); 
             if (item[key]) {
-              console.log('this.item[key]', item); 
               if (item[key].toLowerCase().indexOf(state.search[key].toLowerCase()) >= 0) {
                 return true; 
               } 
@@ -98,7 +114,7 @@ export default function createStoreModule(dbTable, accessor) {
                 return reverse * 1;
               }
             }
-            return 0;   
+            return 0; 
           });
 
           return arr;
@@ -108,17 +124,25 @@ export default function createStoreModule(dbTable, accessor) {
           coll.filter(item =>  
             item.change_type != ChangeTypeConstants.ChangeTypeDeleted);
           
-          console.log('fetch coll', coll);
+          //console.log('fetch coll', coll);
 
-          console.log('fetch page', state.pagination.page);
+          //console.log('fetch page', state.pagination.page);
+
+          let pages = Math.floor(coll.length / state.pagination.pageSize);
+          if (coll % pages >= 1) {
+            pages += 1; 
+          }  
+
+          commit('SET_PAGINATION', {pages});
+
 
           const offset = (state.pagination.page - 1) * state.pagination.pageSize;
           const limit = offset + state.pagination.pageSize;
-          console.log('fetch offset', offset);
-          console.log('fetch limit ', limit);
+          // console.log('fetch offset', offset);
+          // console.log('fetch limit ', limit);
           const pageItems = coll.slice(offset, limit);
 
-          console.log('fetch pageItems', pageItems);
+          // console.log('fetch pageItems', pageItems);
 
           commit('CLEAR'); 
           for (let i = 0, l = pageItems.length; i < l; i++) {
@@ -189,9 +213,10 @@ export default function createStoreModule(dbTable, accessor) {
       patch({commit}, {id, fields}) {
         // only mark as updated if it is not a new record
         // new records must keep new-Type
-
-        //console.log('patch id    ', id);
-        //console.log('patch fields', fields);
+        
+        if (fields.change_type !== 0 && !fields.change_type) {
+          throw new Error('change_type was not passed fields', fields); 
+        }
 
         if (fields.change_type !== ChangeTypeConstants.ChangeTypeCreated) {
           fields.change_type = ChangeTypeConstants.ChangeTypeUpdated;
@@ -202,13 +227,32 @@ export default function createStoreModule(dbTable, accessor) {
         commit('PATCH', {id, fields});
       },
       setPage({commit}, page) {
-        commit('SET_PAGE', page);  
+        commit('SET_PAGINATION', {page});  
       },
       setPageSize({commit}, pageSize) {
-        commit('SET_PAGE_SIZE', pageSize);  
+        commit('SET_PAGINATION', {pageSize});  
       },
-      setIndex({commit}, index) {
-        commit('SET_INDEX', index);  
+      setTotal({commit}, total) {
+        commit('SET_PAGINATION', {total});  
+      },
+      setPages({commit}, pages) {
+        commit('SET_PAGINATION', {pages});  
+      },
+      setIndex({commit, state}, index) {
+        let checkedIndex = index;
+        // if no index given check if to reset to
+        // 0 or stay at the current value
+        if (checkedIndex !== 0 && !checkedIndex) {
+          let l = state.list.length; 
+          if (l) {
+            // set index to first item in list if
+            // index is outside of valid range
+            if (checkedIndex < 0 && checkedIndex >= l) {
+              checkedIndex = 0; 
+            } 
+          }
+        } 
+        commit('SET_INDEX', checkedIndex);  
       },
       refresh({dispatch}) {
         dispatch('fetch');
@@ -222,17 +266,27 @@ export default function createStoreModule(dbTable, accessor) {
       clearOrder({commit}) { 
         commit('CLEAR_ORDER'); 
       },
+      getStatus({commit}) {
+        // simply for firing info
+        // at the vuex-dexie plugin 
+        commit('GET_STATUS'); 
+      },
+      setDbStatus({commit}, dbStatus) {
+        commit('SET_DB_STATUS', dbStatus);
+      },
+      clearStatus({commit}) {
+        commit('CLEAR_STATUS'); 
+      },
     }, 
     mutations: {
       SET_INDEX(state, index) {
         state.index = index; 
       },
-      SET_PAGE(state, page) {
-        state.pagination.page = page; 
-      },
-      SET_PAGE_SIZE(state, pageSize) {
-        state.pagination.pageSize = pageSize; 
-      },
+      SET_PAGINATION(state, obj) {
+        for (let key in obj) {
+          state.pagination[key] = obj[key]; 
+        }
+      }, 
       SET_SEARCH(state, search) {
         state.search = search; 
       },
@@ -241,9 +295,6 @@ export default function createStoreModule(dbTable, accessor) {
       }, 
       ADD(state, item) {
         state.list.push(item);
-      },
-      SET_PAGINATION_ITEM(state, {key, value}) {
-        Vue.set(state.pagination, key, value); 
       },
       CREATE(state, newItem) {
         state.list.push(newItem);
@@ -273,11 +324,9 @@ export default function createStoreModule(dbTable, accessor) {
         const index = state.list.findIndex(item => item.id === id);
         state.list.splice(index, 1);
       },
-      SET_SYNC_TYPE(state, syncType) {
-        state.syncType = syncType; 
-      }, 
-      SET_SYNC_TIME(state, syncTime) {
-        state.syncTime = syncTime; 
+      SET_SYNC(state, {delay, type}) {
+        state.sync.delay = delay;
+        state.sync.type = type;
       }, 
       SET_SCOPE(state, scope) {
         
@@ -301,6 +350,30 @@ export default function createStoreModule(dbTable, accessor) {
         state.list.splice(0);
         state.index = -1;
         state.orders.splice(0); 
+      },
+      GET_STATUS() {
+        // just fire info
+      },
+      CLEAR_STATUS(state) {
+        state.status.db.total = 0;
+        state.status.db.created.splice(0);
+        state.status.db.updated.splice(0);
+        state.status.db.deleted.splice(0);
+      },
+      SET_DB_STATUS(state, {total, created, updated, deleted}) {
+        state.status.db.total = total;
+        state.status.db.created.splice(0);
+        for (let i = 0, l = created.length; i < l; i ++) {
+          state.status.db.created.push(created[i]); 
+        }
+        state.status.db.updated.splice(0);
+        for (let i = 0, l = updated.length; i < l; i ++) {
+          state.status.db.updated.push(updated[i]); 
+        }
+        state.status.db.deleted.splice(0);
+        for (let i = 0, l = deleted.length; i < l; i ++) {
+          state.status.db.deleted.push(deleted[i]); 
+        }
       }
     }
   };

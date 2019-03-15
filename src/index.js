@@ -2,7 +2,7 @@ import {
   ChangeTypeDeleted, 
   ChangeTypeCreated,  
   ChangeTypeUpdated 
-} from './change-type-constants.js';
+} from '../lib/change-type-constants.js';
 
 export default {
   install(Vue, {db, adapters}) {

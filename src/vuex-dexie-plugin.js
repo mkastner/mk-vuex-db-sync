@@ -1,4 +1,7 @@
-export default function VuexDexiePlugin({db, resourceName, modelName, routeName, socketWrapper}) {
+import browserDbTableStatus from './browser-db-table-status';
+
+export default function VuexDexiePlugin({
+  db, resourceName, modelName, routeName, socketWrapper}) {
 
   const props = {
     dependants: {
@@ -86,11 +89,11 @@ export default function VuexDexiePlugin({db, resourceName, modelName, routeName,
     const dbTable = db[resourceName];
 
     store.subscribe((mutation) => {
-      newPlugin.syncers.forEach((syncer) => {
+      newPlugin.syncers.forEach(syncer => 
         //console.log('syncer loop', syncer);
         //syncer.bind(newPlugin); 
-        syncer(mutation, store); 
-      }); 
+        syncer(mutation, store) 
+      ); 
       
       const mutationTypeListeners = newPlugin.mutationListeners[mutation.type];
       
@@ -100,7 +103,14 @@ export default function VuexDexiePlugin({db, resourceName, modelName, routeName,
           l({ mutation, dbTable, store, dependants: newPlugin.dependants})
         );
        
-        Promise.all(mutationTypeListenerPromises).catch((err) => console.error(err));
+        Promise.all(mutationTypeListenerPromises).then(() =>{
+         
+          console.log('Vuex Dexie Plugin promise all fulfilled for mutation type  ', 
+            mutation.type); 
+          console.log('Vuex Dexie Plugin promise all fulfilled for mutation payload', 
+            mutation.payload); 
+
+        }).catch((err) => console.error(err));
         /*
         for (let i = 0, l = mutationTypeListeners.length; i < l; i++) {
           const typeListener = mutationTypeListeners[i];
@@ -177,6 +187,19 @@ export default function VuexDexiePlugin({db, resourceName, modelName, routeName,
       .where('id')
       .equals(mutation.payload.id)
       .modify(mutation.payload.fields); 
+  });
+  
+  newPlugin.addMutationListener('GET_STATUS', ({dbTable}) => {
+    // TODO include dependants
+    return browserDbTableStatus(dbTable).then((result) => {
+      console.log('browserDbTable status result:', result);  
+      return newPlugin.store.dispatch(
+        `${newPlugin.modelName}/setDbStatus`, 
+        result); 
+    });
+    // return dbTable 
+    //.where('id').equals(mutation.payload.id)
+    //.modify(mutation.payload.fields);
   });
 
   return newPlugin;

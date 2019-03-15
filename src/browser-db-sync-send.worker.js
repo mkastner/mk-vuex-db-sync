@@ -5,9 +5,11 @@ let interval;
 self.addEventListener('message', (ev) => {
 
   // command start/stop
-  let syncType = ev.data;
+  let syncType = ev.data.type;
+  let syncDelay = ev.data.delay * 1000;
 
-  console.log('outgoing worker syncType', syncType);
+  console.log('outgoing worker syncType ', syncType);
+  console.log('outgoing worker syncDelay', syncDelay);
   
   function fireMessage() {
     console.log('worker running'); 
@@ -17,17 +19,17 @@ self.addEventListener('message', (ev) => {
   if (syncType === SyncTypeConstants.Types.Start) {
     // imediately fire first message
     // and start running interval
-    console.log('worker initial message'); 
+    console.log('outgoing worker initial message'); 
     self.postMessage('message');
     // fire every five minutes
-    interval = setInterval(fireMessage, 60000 * 5);
-    console.log('created interval', interval);
+    interval = setInterval(fireMessage, syncDelay);
+    console.log('outgoing worker created interval', interval);
   } else if (syncType === SyncTypeConstants.Types.Once) {
     self.postMessage('message');
-    console.log('worker send once', interval);
+    console.log('outgoign worker send once', interval);
   } else if (syncType === SyncTypeConstants.Types.None || 
     syncType === SyncTypeConstants.Types.Stop) {
-    console.log('worker stop sending message for interval', interval); 
+    console.log('outgoing worker stop sending message for interval', interval); 
     clearInterval(interval);
   }
 

@@ -1,4 +1,4 @@
-import ChangeTypeConstants from './change-type-constants';
+import ChangeTypeConstants from '../lib/change-type-constants';
 
 export default function collectOutgoingSyncData(dbTable, modelName, depKey) {
 

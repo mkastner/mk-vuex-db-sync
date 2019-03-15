@@ -8,8 +8,10 @@ const webpackConfig = require('../build/webpack.test.config');
 const compiler = webpack(webpackConfig);
 const express = require('express');
 const app = express();
+const Bookshelf = require('../test/db/db-server');
 const PersonModel = require('./db/person-model');
 const CommentModel = require('./db/comment-model');
+const createDbDeletedRecordModel = require('../lib/create-db-deleted-record-model');
 const SyncTask = require('../lib/sync-task');
 const server = require('http').createServer();
 
@@ -25,7 +27,7 @@ const wss = new WebSocket.Server({server: server}, (result, code, name, headers)
 //console.log('wss', wss);
 console.log('PersonModel************', new PersonModel().tableName);
 
-
+const DeletedRecordModel = createDbDeletedRecordModel(Bookshelf);
 
 wss.on('connection', function connection(ws) {
   //console.log('on connection', ws);
@@ -34,11 +36,12 @@ wss.on('connection', function connection(ws) {
   
   const models = { 
     person: PersonModel, 
-    comment: CommentModel 
+    comment: CommentModel,
+    deletedRecord: DeletedRecordModel 
   };
   
   SyncTask.init(wss, ws, models); 
-  
+
   // A task handler could also handle communication 
   const taskHandlers = {
     'persons/sync': SyncTask

@@ -1,10 +1,17 @@
 // second arg: Promise
 exports.up = function(knex) {
+  
+  const deletedRecords = () => knex.schema.createTable('deleted_records', (t) => {
+    t.bigIncrements('id').primary().unsigned();
+    t.integer('user_id');
+    t.string('model_name');
+    t.integer('record_id');
+    t.timestamps();
+  });
 
   const createPersons = () => knex.schema.createTable('persons', (t) => {
     t.bigIncrements('id').primary().unsigned();
-    t.datetime('created_at');
-    t.datetime('updated_at');
+    t.timestamps();
     t.string('name');
   });
     
@@ -17,11 +24,15 @@ exports.up = function(knex) {
     t.string('body');
   });
 
-  return createPersons().then(createComments);  
+  return deletedRecords().then(createPersons).then(createComments);  
   
 };
 
 // second arg: Promise
 exports.down = (knex) => {
-  return Promise.all([knex.schema.dropTable('persons'), knex.schema.dropTable('jobs')]); 
+  return Promise.all([
+    knex.schema.dropTable('audits'),
+    knex.schema.dropTable('persons'), 
+    knex.schema.dropTable('comments')
+  ]); 
 };

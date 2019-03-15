@@ -1,5 +1,5 @@
 import SyncTypeConstants from '../../../src/sync-type-constants';
-import ChangeTypeConstants from '../../../src/change-type-constants';
+import ChangeTypeConstants from '../../../lib/change-type-constants';
 
 export default {
   data() {
@@ -64,7 +64,7 @@ export default {
   },
   watch: {
     syncType(val) {
-      this.$store.dispatch('person/setSyncType', val);
+      this.$store.dispatch('person/setSync', {type: val});
     } 
   }
 };

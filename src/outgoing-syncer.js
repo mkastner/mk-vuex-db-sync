@@ -1,6 +1,4 @@
-// browser-db-sync should be renamed to a better name 
 import SendWorker from './browser-db-sync-send.worker.js';
-// import ReceiveWorker from './browser-db-sync-receive.worker.js';
 import SyncTypeConstants from './sync-type-constants';
 import collectOutgoingSyncData from './collect-outgoing-sync-data.js';
 
@@ -91,15 +89,17 @@ export default function OutgoingSyncer() {
     }
 
 
-    const mutationType = `${this.modelName}/SET_SYNC_TYPE`;
+    const mutationType = `${this.modelName}/SET_SYNC`;
     
     // console.log('Syncer listen mutation', mutation);
 
     if (mutation.type === mutationType) {
-     
-      if (mutation.payload) { // i.e. if true
+    
+      const sync = mutation.payload;
+
+      if (sync.type) { // i.e. if truthy
         
-        worker.postMessage(mutation.payload); 
+        worker.postMessage(sync); 
       }
     }
 

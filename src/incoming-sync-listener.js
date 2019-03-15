@@ -1,5 +1,5 @@
 import ReceiveWorker from './browser-db-sync-receive.worker.js';
-import ChangeTypeConstants from './change-type-constants';
+import ChangeTypeConstants from '../lib/change-type-constants';
 
 function resetChangeType(items) {
   for (let i = 0, l = items.length; i < l; i++) {
@@ -35,7 +35,7 @@ function saveItems(data, store, db) {
       // created: delete items with uuid 
       let keys = createdServerItems.map( item => item.priorId );
       
-      console.log('incoming-syncer buldDelete priorIds:', keys);
+      console.log('incoming-syncer bulkDelete priorIds:', keys);
      
       console.log('keys', keys);
       
@@ -43,14 +43,23 @@ function saveItems(data, store, db) {
     })
     .then(() => {
 
+      console.log('createdServerItems', createdServerItems);
+
       const items = createdServerItems.map( itemWrapper => itemWrapper.item );
+      
+      console.log('items              ', items);
+
       //const itemIds = createdServerItems.map( itemWrapper => itemWrapper.priorId );
       resetChangeType(items);
       
       console.log('before bulkAdd createdServerItems name:', name);
       console.log('before bulkAdd createdServerItems     :', items.length);
+      console.log('before bulkAdd createdServerItems     :', items);
 
-      return dbTable.bulkAdd(createdServerItems);
+      // TODO Here!!!!!!!!
+      //return dbTable.bulkAdd(createdServerItems);
+    
+      return Promise.resolve(); 
     }) 
     .then(() => {
 
