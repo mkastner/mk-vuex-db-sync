@@ -122,12 +122,12 @@ export default function VuexDexiePlugin({
     }); 
   };
 
-
   newPlugin.addMutationListener('PATCH', ({mutation, dbTable}) => {
     return dbTable  
       .where('id').equals(mutation.payload.id)
       .modify(mutation.payload.fields);
   });
+
   newPlugin.addMutationListener('CREATE', ({mutation, dbTable, store, dependants}) => {
     return dbTable.add(mutation.payload)
       .then((createdId) => {
@@ -182,11 +182,26 @@ export default function VuexDexiePlugin({
       });
 
   }); 
-  newPlugin.addMutationListener('MARK_DELETED', ({mutation}) => {
+  newPlugin.addMutationListener('MARK_DELETED', ({mutation, dependants}) => {
+    /* 
     return newPlugin.db[newPlugin.resourceName]
       .where('id')
       .equals(mutation.payload.id)
       .modify(mutation.payload.fields); 
+    */ 
+    return newPlugin.db[newPlugin.resourceName]
+      .where('id')
+      .equals(mutation.payload.id)
+      .modify(mutation.payload.fields).then(() => { 
+        let deletePromises = dependants.map(dep => {
+          let scope = {};
+          scope[`${dep.depKey}`] = mutation.payload.id;
+          console.log('vuex plugin MARK_DELETED scope', scope);
+          return newPlugin.store.dispatch(`${dep.modelName}/deleteScoped`, scope);
+        });
+        console.log('MARK_DELETED deletePromises', deletePromises);
+        return Promise.all(deletePromises);
+      });
   });
   
   newPlugin.addMutationListener('GET_STATUS', ({dbTable}) => {

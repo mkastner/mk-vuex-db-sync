@@ -1,3 +1,4 @@
+const log = require('mk-log');
 const path = require('path');
 const webpack = require('webpack');
 const port = 3001;
@@ -17,20 +18,20 @@ const server = require('http').createServer();
 
 const wss = new WebSocket.Server({server: server}, (result, code, name, headers) => {
 
-  console.log('server.js wss callback  result', result);
-  console.log('server.js wss callback    code', code);
-  console.log('server.js wss callback    name', name);
-  console.log('server.js wss callback headers', headers);
+  log.info('server.js wss callback  result', result);
+  log.info('server.js wss callback    code', code);
+  log.info('server.js wss callback    name', name);
+  log.info('server.js wss callback headers', headers);
 
 });
 
-//console.log('wss', wss);
-console.log('PersonModel************', new PersonModel().tableName);
+//log.info('wss', wss);
+log.info('PersonModel************', new PersonModel().tableName);
 
 const DeletedRecordModel = createDbDeletedRecordModel(Bookshelf);
 
 wss.on('connection', function connection(ws) {
-  //console.log('on connection', ws);
+  //log.info('on connection', ws);
   //
   //
   
@@ -48,38 +49,38 @@ wss.on('connection', function connection(ws) {
   };
   ws.on('message', function incoming(stringifiedJSON) {
 
-    //console.log('stringifiedJSON', stringifiedJSON);
+    //log.info('stringifiedJSON', stringifiedJSON);
 
     let data = JSON.parse(stringifiedJSON); 
-    console.log('data', data);
+    log.debug('data', data);
 
     // TODO get key data here
 
     let taskKey = `${data.name}/${data.task}`; 
 
 
-    // console.log('data', data); 
+    // log.info('data', data); 
     // Broadcast to everyone else.
-    // console.log('server.js ws.on message task        :', task);
-    //console.log('server.js ws.on message taskHandlers:', taskHandlers);
+    // log.info('server.js ws.on message task        :', task);
+    //log.info('server.js ws.on message taskHandlers:', taskHandlers);
     const taskHandler = taskHandlers[taskKey];
     if (!taskHandler) {
       throw new Error(`taskKey "${taskKey}" does not match any
       registered task keys: ${Object.keys(taskHandlers)}`); 
     }
-    //console.log('server.js ws.on message taskHandler :', taskHandler);
+    //log.info('server.js ws.on message taskHandler :', taskHandler);
     taskHandler.execute(data);
 
     //syncTask(ws, wss, {task, data}, personModel).execute();
 
   });
   ws.on('open', function open() {
-    console.log('connected');
+    log.info('connected');
     ws.send(Date.now());
   });
 
   ws.on('close', function close() {
-    console.log('disconnected');
+    log.info('disconnected');
   });
 });
 
@@ -101,6 +102,6 @@ app.get('/', (req, res) => {
 });
 
 server.listen(port, () => {
-  console.log('server listening on port', port);
+  log.info('server listening on port', port);
 });
 

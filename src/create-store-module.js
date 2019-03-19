@@ -66,7 +66,7 @@ export default function createStoreModule(dbTable, accessor) {
       search({commit, dispatch}, search) {
         commit('SET_SEARCH', search); 
         dispatch('fetch');
-      }, 
+      },
       fetch({commit, state}) {
         // fetch is always paginated 
 
@@ -187,7 +187,8 @@ export default function createStoreModule(dbTable, accessor) {
           });
       },
       delete({commit}, {id, change_type}) {
-        if (change_type !== 0 && !change_type) { throw new Error('delete requires change_type as named argument');}
+        if (change_type !== 0 && !change_type) { 
+          throw new Error('delete requires change_type as named argument');}
         // if the record is a new one
         // then it can get immediately deleted
         // because it's not stored on the server yet
@@ -210,12 +211,22 @@ export default function createStoreModule(dbTable, accessor) {
           commit('MARK_DELETED', {id, fields});
         }
       },
+      // refresh list with createdServerItems
+      // without firing event for database
+      refreshServerCreated({commit}, {priorId, fields}) {
+        console.log('refreshServerCreated priorId', priorId);
+        console.log('refreshServerCreated fields ', fields);
+        if (fields.change_type !== 0 && !fields.change_type) {
+          throw new Error('change_type was not passed in fields', fields); 
+        }
+        commit('REFRESH_SERVER_CREATED_SILENT', {priorId, fields});
+      },
       patch({commit}, {id, fields}) {
         // only mark as updated if it is not a new record
         // new records must keep new-Type
         
         if (fields.change_type !== 0 && !fields.change_type) {
-          throw new Error('change_type was not passed fields', fields); 
+          throw new Error('change_type was not passed in fields', fields); 
         }
 
         if (fields.change_type !== ChangeTypeConstants.ChangeTypeCreated) {
@@ -302,6 +313,17 @@ export default function createStoreModule(dbTable, accessor) {
       },
       REMOVE_LOCAL_DATA(state) {
         state.list.splice(0); 
+      },
+      // SILENT postfix means: never listen to this event
+      REFRESH_SERVER_CREATED_SILENT(state, {priorId, fields}) {
+        console.log('REFRESH_SERVER_CREATED_SILENT priorId', priorId);
+        const index = state.list.findIndex(item => item.id === priorId);
+        console.log('REFRESH_SERVER_CREATED_SILENT index', index); 
+        if (index >= 0) { 
+          for (let key in fields) {
+            state.list[index][key] = fields[key]; 
+          }
+        }
       },
       PATCH(state, {id, fields}) {
         console.log('PATCH id   ', id); 

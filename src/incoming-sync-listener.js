@@ -1,4 +1,3 @@
-import ReceiveWorker from './browser-db-sync-receive.worker.js';
 import ChangeTypeConstants from '../lib/change-type-constants';
 
 function resetChangeType(items) {
@@ -8,25 +7,27 @@ function resetChangeType(items) {
 }
 
 function saveItems(data, store, db) {
+ 
+  console.log('data', data);
 
   const {
     // name e.g. persons
     name,
-    deletedServerItems, 
+    modelName,
+    deletedServerItems, // list of ids 
     createdServerItems, 
     updatedServerItems, 
     missingServerItems,
     serverDependants } = data; 
 
-  console.log('db  ', db);
-  console.log('data name', name);
 
   const dbTable = db[name];
 
+  const deleteIds = deletedServerItems;
+
   let promise = dbTable
-    .bulkDelete(deletedServerItems.map(item => item.id))
+    .bulkDelete(deleteIds)
     .then(() => {
-      console.log('incoming-syncer bulkPut');
       // let keys = updatedServerItems.map(item => item.id);
       resetChangeType(updatedServerItems);
       return dbTable.bulkPut(updatedServerItems);
@@ -42,24 +43,31 @@ function saveItems(data, store, db) {
       return dbTable.bulkDelete(keys);
     })
     .then(() => {
-
-      console.log('createdServerItems', createdServerItems);
-
       const items = createdServerItems.map( itemWrapper => itemWrapper.item );
-      
-      console.log('items              ', items);
-
-      //const itemIds = createdServerItems.map( itemWrapper => itemWrapper.priorId );
       resetChangeType(items);
-      
-      console.log('before bulkAdd createdServerItems name:', name);
-      console.log('before bulkAdd createdServerItems     :', items.length);
-      console.log('before bulkAdd createdServerItems     :', items);
 
-      // TODO Here!!!!!!!!
-      //return dbTable.bulkAdd(createdServerItems);
+      console.log('items', items);
+
+      return new Promise((resolve, reject) => {
+        dbTable.bulkAdd(items).then((result) => {
+          for (let i = 0, l = store.state[modelName].list.length; i < l; i++) {
+            const listItem = store.state[modelName].list[i];
+            const matchedItemWrapper = createdServerItems.find( itemWrapper => 
+              itemWrapper.priorId === listItem.id);
+            if (matchedItemWrapper) {
+              store.dispatch(`${modelName}/refreshServerCreated`, {
+                priorId: matchedItemWrapper.priorId,
+                fields: matchedItemWrapper.item
+              });
+            }
+          } 
+          resolve(result); 
+        }).catch((err) => {
+          console.error(err);
+          reject(err); 
+        });
+      });
     
-      return Promise.resolve(); 
     }) 
     .then(() => {
 
@@ -68,14 +76,17 @@ function saveItems(data, store, db) {
       console.log('before bulkAdd missingServerItems name:', name);
       console.log('before bulkAdd missingServerItems     :', 
         missingServerItems.map(item => item.id));
+      return dbTable.bulkAdd(missingServerItems)
 
-      return new Promise((resolve, reject) => {
+      /*
+       * return new Promise((resolve, reject) => {
         dbTable.bulkAdd(missingServerItems)
           .then(result => {
             console.log('bulkAdd result', result); 
             resolve(result);
           }).catch(err => reject(err));
       });
+      */
     }); 
 
   if (!serverDependants || !serverDependants.length) {
@@ -90,21 +101,8 @@ function saveItems(data, store, db) {
 
 export default function incomingSyncListener(db, store, socketWrapper) {
   
-  let worker = new ReceiveWorker();
-
-  //this.socketWrapper.socket.addEventListener('message', (message) => {
-  //  console.log('**** socket message', message); 
-  //});
   socketWrapper.receive('sync', (data) => {
-    console.log('received data posting to worker', data);
-    // check for proper resource done in
-    // browser socket wrapper in event listener 'message'
-    worker.postMessage(data);
-  });
-  worker.addEventListener('message', (ev) => {
-    console.log('worker ev     ', ev);
-    console.log('worker ev.data', ev.data);
-    saveItems(ev.data, store, db)
+    saveItems(data, store, db)
       .then(() => {
         console.log('all items saved'); 
       })
@@ -112,6 +110,5 @@ export default function incomingSyncListener(db, store, socketWrapper) {
         console.error(err); 
       });
   });
-
 }
 
