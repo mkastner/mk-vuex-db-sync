@@ -11,12 +11,13 @@ import BrowserSocketWrapper from '../../src/browser-socket-wrapper';
 
 const host = window.document.location.host.replace(/:.*/, '');
 const port = window.document.location.port;
+const path = '/socket';
 
 export function createStore() {
 
   const db = createDb();
   // or use wss for secure connection
-  const socketWrapper = BrowserSocketWrapper('ws://' + host + ':' + port);
+  const socketWrapper = BrowserSocketWrapper('ws://' + host + ':' + port + path);
  
   const personPlugin = VuexDexiePlugin({
     db, resourceName: 'persons', 

@@ -16,7 +16,9 @@ const createDbDeletedRecordModel = require('../lib/create-db-deleted-record-mode
 const SyncTask = require('../lib/sync-task');
 const server = require('http').createServer();
 
-const wss = new WebSocket.Server({server: server}, (result, code, name, headers) => {
+const wss = new WebSocket.Server({
+  server: server, 
+  path: '/socket'}, (result, code, name, headers) => {
 
   log.info('server.js wss callback  result', result);
   log.info('server.js wss callback    code', code);

@@ -36,17 +36,11 @@ function saveItems(data, store, db) {
       // created: delete items with uuid 
       let keys = createdServerItems.map( item => item.priorId );
       
-      console.log('incoming-syncer bulkDelete priorIds:', keys);
-     
-      console.log('keys', keys);
-      
       return dbTable.bulkDelete(keys);
     })
     .then(() => {
       const items = createdServerItems.map( itemWrapper => itemWrapper.item );
       resetChangeType(items);
-
-      console.log('items', items);
 
       return new Promise((resolve, reject) => {
         dbTable.bulkAdd(items).then((result) => {
@@ -70,23 +64,8 @@ function saveItems(data, store, db) {
     
     }) 
     .then(() => {
-
       resetChangeType(missingServerItems);
-
-      console.log('before bulkAdd missingServerItems name:', name);
-      console.log('before bulkAdd missingServerItems     :', 
-        missingServerItems.map(item => item.id));
-      return dbTable.bulkAdd(missingServerItems)
-
-      /*
-       * return new Promise((resolve, reject) => {
-        dbTable.bulkAdd(missingServerItems)
-          .then(result => {
-            console.log('bulkAdd result', result); 
-            resolve(result);
-          }).catch(err => reject(err));
-      });
-      */
+      return dbTable.bulkAdd(missingServerItems);
     }); 
 
   if (!serverDependants || !serverDependants.length) {
@@ -104,6 +83,9 @@ export default function incomingSyncListener(db, store, socketWrapper) {
   socketWrapper.receive('sync', (data) => {
     saveItems(data, store, db)
       .then(() => {
+        if (store.state[data.modelName].list.length === 0) {
+          store.dispatch(`${data.modelName}/fetch`);
+        } 
         console.log('all items saved'); 
       })
       .catch((err) => {

@@ -17,7 +17,8 @@ export default function createStoreModule(dbTable, accessor) {
         type: SyncTypeConstants.Types.None,
         delay: 0 
       },
-      scope: {}, 
+      scope: {
+      }, 
       orders: [],//{ by: '', reverse: false}, 
       index: -1,
       search: {}, // ege title: 'Bauen', subtitle: 'haus'
@@ -64,7 +65,8 @@ export default function createStoreModule(dbTable, accessor) {
         commit('SET_SYNC', {delay, type}); 
       },
       search({commit, dispatch}, search) {
-        commit('SET_SEARCH', search); 
+        commit('SET_SEARCH', search);
+        dispatch('setPage', 1);
         dispatch('fetch');
       },
       fetch({commit, state}) {
@@ -120,27 +122,33 @@ export default function createStoreModule(dbTable, accessor) {
           return arr;
 
         }).then((coll) => {
-          // don't show items marked as deleted 
-          coll.filter(item =>  
+          // don't show items marked as deleted
+          // TODO: this should be in scope
+          const undeletedItems = coll.filter(item =>  
             item.change_type != ChangeTypeConstants.ChangeTypeDeleted);
           
           //console.log('fetch coll', coll);
 
           //console.log('fetch page', state.pagination.page);
 
-          let pages = Math.floor(coll.length / state.pagination.pageSize);
+          let pages = Math.floor(undeletedItems.length / state.pagination.pageSize);
           if (coll % pages >= 1) {
             pages += 1; 
-          }  
+          } 
+          // if there's only one page and there are
+          // less items than page length then
+          // pages is 0 but it must be 1
+          if (pages === 0 && undeletedItems.length > 0) {
+            pages = 1; 
+          }
 
           commit('SET_PAGINATION', {pages});
-
 
           const offset = (state.pagination.page - 1) * state.pagination.pageSize;
           const limit = offset + state.pagination.pageSize;
           // console.log('fetch offset', offset);
           // console.log('fetch limit ', limit);
-          const pageItems = coll.slice(offset, limit);
+          const pageItems = undeletedItems.slice(offset, limit);
 
           // console.log('fetch pageItems', pageItems);
 
@@ -308,6 +316,9 @@ export default function createStoreModule(dbTable, accessor) {
         state.list.push(item);
       },
       CREATE(state, newItem) {
+        for (let key in newItem) {
+          Vue.set(newItem, key, newItem[key]);
+        }
         state.list.push(newItem);
         state.index = state.list.length -1; 
       },
