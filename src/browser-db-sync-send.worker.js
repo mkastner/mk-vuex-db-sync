@@ -10,7 +10,14 @@ self.addEventListener('message', (ev) => {
 
   console.log('outgoing worker syncType ', syncType);
   console.log('outgoing worker syncDelay', syncDelay);
-  
+
+  if (syncType !== 0 && !syncType) {
+    throw new Error('No syncType passed to send worker message');
+  }
+  if (syncDelay !== 0 && !syncDelay) {
+    throw new Error('No syncDelay passed to send worker message');
+  }
+
   function fireMessage() {
     console.log('worker running'); 
     self.postMessage('message');

@@ -1,4 +1,5 @@
 import ChangeTypeConstants from '../lib/change-type-constants';
+import SyncTypeConstants from './sync-type-constants';
 
 function resetChangeType(items) {
   for (let i = 0, l = items.length; i < l; i++) {
@@ -87,6 +88,11 @@ export default function incomingSyncListener(db, store, socketWrapper) {
           store.dispatch(`${data.modelName}/fetch`);
         } 
         console.log('all items saved'); 
+        if (store.state[data.modelName].sync.type === SyncTypeConstants.Types.Once) {
+          store.dispatch(`${data.modelName}/setSync`, {
+            delay: 0,
+            type: SyncTypeConstants.Types.None});
+        }
       })
       .catch((err) => {
         console.error(err); 

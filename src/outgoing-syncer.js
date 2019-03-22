@@ -77,27 +77,40 @@ export default function OutgoingSyncer() {
       if (mutation.payload.to.name === this.routeName) {
         // first stop all syncing processes
         console.log('syncing once on entering route', mutation.payload.to.name);
-        worker.postMessage(SyncTypeConstants.Types.None); 
-        worker.postMessage(SyncTypeConstants.Types.Once); 
+        //worker.postMessage(SyncTypeConstants.Types.None); 
+        worker.postMessage({
+          type: SyncTypeConstants.Types.Once,
+          delay: 0
+        }); 
       } 
       if (mutation.payload.from.name === this.routeName) {
         // first stop all syncing processes
         console.log('syncing once on leaving route', mutation.payload.from.name);
-        worker.postMessage(SyncTypeConstants.Types.None); 
-        worker.postMessage(SyncTypeConstants.Types.Once); 
+        worker.postMessage({
+          type: SyncTypeConstants.Types.Once,
+          delay: 0
+        }); 
       } 
     }
 
 
     const mutationType = `${this.modelName}/SET_SYNC`;
     
-    // console.log('Syncer listen mutation', mutation);
 
     if (mutation.type === mutationType) {
     
+      console.log('Syncer listen mutation SET_SYNC', mutation);
+    
       const sync = mutation.payload;
 
-      if (sync.type) { // i.e. if truthy
+      if (sync.type !== 0 && !sync.type) {
+        throw new Error('No syncType passed to send worker message');
+      }
+      if (sync.delay !== 0 && !sync.delay) {
+        throw new Error('No syncDelay passed to send worker message');
+      }
+
+      if (sync.type && sync.type !== SyncTypeConstants.Types.None) { // i.e. if truthy
         
         worker.postMessage(sync); 
       }

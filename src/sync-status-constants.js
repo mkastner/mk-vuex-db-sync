@@ -4,17 +4,17 @@ const Const = {
     None: 0,
     Ongoing: 1,
     Started: 2,
-    Finished: 3
+    Success: 3
   }
 };
 
 Const.Labels = {};
 
-Const.Labels[Const.Types.Error] = 'Error';
-Const.Labels[Const.Types.None] = 'None';
-Const.Labels[Const.Types.Ongoing] = 'ongoing';
-Const.Labels[Const.Types.Started] = 'Started';
-Const.Labels[Const.Types.Finished] = 'Finished';
+Const.Labels[Const.Types.Error] = 'Fehler';
+Const.Labels[Const.Types.None] = 'keine';
+Const.Labels[Const.Types.Ongoing] = 'wird gerade ausgeführt';
+Const.Labels[Const.Types.Started] = 'wurde gestartet';
+Const.Labels[Const.Types.Success] = 'wurde erfolgreich durchgeführt';
 
 export default Const;
 

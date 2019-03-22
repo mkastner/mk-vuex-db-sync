@@ -14,8 +14,10 @@ export default function createStoreModule(dbTable, accessor) {
     
     state: () => ({
       sync: {
-        type: SyncTypeConstants.Types.None,
-        delay: 0 
+        type: SyncTypeConstants.Types.None, // when should the transfer take place 
+        status: SyncStatusConstants.Types.None, // what's the sync transfer status
+        delay: 0, 
+        at: '' // timestamp of last status 
       },
       scope: {
       }, 
@@ -29,18 +31,12 @@ export default function createStoreModule(dbTable, accessor) {
         pages: 1,
         total: 1
       }, // tables pagination 
-      status: {
-        sync: {
-          status: SyncStatusConstants.Types.None,
-          at: '' // timestamp of last status 
-        },
-        db: {
-          total: 0, 
-          updated: [],
-          created: [],
-          deleted: [] 
-        }
-      } 
+      db: {
+        total: 0, 
+        updated: [],
+        created: [],
+        deleted: [] 
+      }
     }),
     getters: {
       // (state, allGetters, rootState) => rootState.route.params
@@ -61,8 +57,26 @@ export default function createStoreModule(dbTable, accessor) {
       removeLocalData({commit}) {
         commit('REMOVE_LOCAL_DATA'); 
       }, 
-      setSync({commit}, {delay, type}) {
-        commit('SET_SYNC', {delay, type}); 
+      setSync({commit, state}, {delay, type}) {
+        
+        console.log('setSync before delay', delay);
+        console.log('setSync before type ', type);
+        
+        const sync = {}; 
+        if (delay !== 0 && !delay) {
+          sync.delay = state.sync.delay; 
+        } else {
+          sync.delay = delay; 
+        } 
+        if (type !== 0 && !type) {
+          sync.type = state.sync.type; 
+        } else {
+          sync.type = type; 
+        } 
+
+        console.log('setSync after sync', sync);
+
+        commit('SET_SYNC', sync); 
       },
       search({commit, dispatch}, search) {
         commit('SET_SEARCH', search);
@@ -388,24 +402,24 @@ export default function createStoreModule(dbTable, accessor) {
         // just fire info
       },
       CLEAR_STATUS(state) {
-        state.status.db.total = 0;
-        state.status.db.created.splice(0);
-        state.status.db.updated.splice(0);
-        state.status.db.deleted.splice(0);
+        state.db.total = 0;
+        state.db.created.splice(0);
+        state.db.updated.splice(0);
+        state.db.deleted.splice(0);
       },
       SET_DB_STATUS(state, {total, created, updated, deleted}) {
-        state.status.db.total = total;
-        state.status.db.created.splice(0);
+        state.db.total = total;
+        state.db.created.splice(0);
         for (let i = 0, l = created.length; i < l; i ++) {
-          state.status.db.created.push(created[i]); 
+          state.db.created.push(created[i]); 
         }
-        state.status.db.updated.splice(0);
+        state.db.updated.splice(0);
         for (let i = 0, l = updated.length; i < l; i ++) {
-          state.status.db.updated.push(updated[i]); 
+          state.db.updated.push(updated[i]); 
         }
-        state.status.db.deleted.splice(0);
+        state.db.deleted.splice(0);
         for (let i = 0, l = deleted.length; i < l; i ++) {
-          state.status.db.deleted.push(deleted[i]); 
+          state.db.deleted.push(deleted[i]); 
         }
       }
     }
